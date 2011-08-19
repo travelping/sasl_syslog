@@ -1,0 +1,15 @@
+{application, sasl_syslog, [
+  {description, "syslog/UDP error logger report handler"},
+  {vsn, "1"},
+  {registered, []},
+  {applications, [kernel, stdlib]},
+  {mod, {sasl_syslog_app, []}},
+  {env, [
+    {enabled,     false},
+    {facility,    daemon},
+    {multiline,   false},
+    {local_port,  0},
+    {remote_host, "127.0.0.1"},
+    {remote_port, 514}
+  ]}
+]}.
