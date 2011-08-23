@@ -19,7 +19,8 @@
 % DEALINGS IN THE SOFTWARE.
 
 -module(sasl_syslog).
--export([open_socket/1, close_socket/1, send/4, msg_to_binary/1, msg_to_binary/2]).
+-export([open_socket/1, close_socket/1, send/4, msg_to_binary/1, msg_to_binary/2,
+         severity_int/1]).
 -export_type([facility/0, severity/0]).
 
 -include("sasl_syslog.hrl").
