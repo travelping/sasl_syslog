@@ -29,9 +29,22 @@
 %% ------------------------------------------------------------------------------------------
 %% -- misc API
 attach() ->
-    error_logger:add_report_handler(?MODULE).
+    Handlers = gen_event:which_handlers(error_logger),
+    case lists:member(?MODULE, Handlers) of
+        false ->
+            error_logger:add_report_handler(?MODULE);
+        _ ->
+            ok
+    end.
+
 detach() ->
-    error_logger:delete_report_handler(?MODULE).
+    detach_all(ok).
+
+%% @private
+detach_all(ok) ->
+    detach_all(error_logger:delete_report_handler(?MODULE));
+detach_all(_) ->
+    ok.
 
 %% ------------------------------------------------------------------------------------------
 %% -- gen_event callbacks
