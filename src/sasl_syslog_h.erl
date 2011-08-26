@@ -98,9 +98,13 @@ code_change(_OldVsn, State, _Extra) ->
 %% -- helpers
 maybe_split_msg(Msg = #msg{msg = Text}) ->
     case application:get_env(sasl_syslog, multiline) of
-        undefined   -> [Msg];
-        {ok, true}  -> [Msg];
-        {ok, false} -> [Msg#msg{msg = Line} || Line <- binary:split(Text, <<"\n">>, [global])]
+        undefined   ->
+            [Msg];
+        {ok, true}  ->
+            [Msg];
+        {ok, false} ->
+            BinText = unicode:characters_to_binary(Text),
+            [Msg#msg{msg = Line} || Line <- binary:split(BinText, <<"\n">>, [global])]
     end.
 
 event_to_msg({error, _GL, Report}) ->
