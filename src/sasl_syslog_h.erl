@@ -131,7 +131,9 @@ fmt_msg(Severity, {Pid, Format, Args}) ->
 report_msg(Severity, {Pid, _Type, Report}) ->
     #msg{msg = report_text(Report), severity = Severity, msgid = process_name(Pid)}.
 
-process_name(Pid) ->
+process_name(Name) when is_atom(Name) ->
+    Name;
+process_name(Pid) when is_pid(Pid) ->
     case process_info(Pid, registered_name) of
         []                        -> pid_to_list(Pid);
         undefined                 -> pid_to_list(Pid);
