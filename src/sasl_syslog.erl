@@ -19,7 +19,7 @@
 % DEALINGS IN THE SOFTWARE.
 
 -module(sasl_syslog).
--export([open_socket/1, close_socket/1, send/4, msg_to_binary/1, msg_to_binary/2,
+-export([open_socket/1, close_socket/1, send_msg/4, msg_to_binary/1, msg_to_binary/2,
          facility_int/1, severity_int/1, report_severity/1]).
 -export([truncate/2]).
 -export_type([facility/0, severity/0, timestamp/0]).
@@ -57,8 +57,8 @@ close_socket(Socket) ->
     gen_udp:close(Socket).
 
 %% @deprecated
--spec send(udp_socket(), host(), udp_port_no(), #msg{}) -> any().
-send(Socket, Address, Port, Msg) ->
+-spec send_msg(udp_socket(), host(), udp_port_no(), #msg{}) -> any().
+send_msg(Socket, Address, Port, Msg) ->
     sasl_syslog_rfc5424:send_msg(Socket, Address, Port, Msg).
 
 %% @deprecated
