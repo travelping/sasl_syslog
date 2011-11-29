@@ -26,8 +26,23 @@
 
 -include("sasl_syslog.hrl").
 
+-type process() :: pid() | atom().
+-type group_leader() ::  pid() | atom().
+-type std_report_type() :: std_error | std_warning | std_info.
+-type sasl_report_type() :: supervisor_report | crash_report | progress.
+-type report_type() :: std_report_type() | sasl_report_type() | atom().
+
+-type event() :: {error, group_leader(), {process(), string(), list()}}
+               | {error_report, group_leader(), {process(), report_type(), Report}}
+               | {warning_msg, group_leader(), {process(), string(), list()}}
+               | {warning_report, group_leader(), {process(), report_type(), Report}}
+               | {info_msg, group_leader(), {process(), string(), list()}}
+               | {info_report, group_leader(), {process(), report_type(), Report}}
+               | term().
+
 %% ------------------------------------------------------------------------------------------
 %% -- misc API
+-spec attach() -> ok.
 attach() ->
     Handlers = gen_event:which_handlers(error_logger),
     case lists:member(?MODULE, Handlers) of
@@ -37,6 +52,7 @@ attach() ->
             ok
     end.
 
+-spec detach() -> ok.
 detach() ->
     detach_all(ok).
 
@@ -48,7 +64,10 @@ detach_all(_) ->
 
 %% ------------------------------------------------------------------------------------------
 %% -- gen_event callbacks
--record(state, {socket, emulator_pid}).
+-record(state, {
+    socket       :: sasl_syslog:udp_socket(),
+    emulator_pid :: string()
+}).
 
 %% @private
 init(_) ->
@@ -57,29 +76,28 @@ init(_) ->
     {ok, #state{socket = Socket, emulator_pid = os:getpid()}}.
 
 %% @private
+-spec handle_event(event(), #state{}) -> {ok, #state{}}.
 handle_event(Event, State = #state{socket = Socket, emulator_pid = EmulatorPid}) ->
-    case event_to_msg(Event) of
+    Timestamp = os:timestamp(),
+    case event_to_report(Event) of
         undefined ->
             {ok, State};
-        MsgRec1 ->
+        Report1 ->
             {ok, RemoteHost} = application:get_env(sasl_syslog, remote_host),
-            {ok, RemotePort} = application:get_env(sasl_syslog, remote_port),
-            {ok, Facility}   = application:get_env(sasl_syslog, facility),
-            MsgRec2 = MsgRec1#msg{timestamp = erlang:universaltime(),
-                                  facility = Facility,
-                                  procid = EmulatorPid,
-                                  appname = "beam",
-                                  hostname = nodename_to_host(node())},
-            lists:foreach(fun (MsgRec3) ->
-                                  sasl_syslog:send(Socket, RemoteHost, RemotePort, MsgRec3)
-                          end, maybe_split_msg(MsgRec2)),
+            {ok, Formatter}  = application:get_env(sasl_syslog, formatter),
+            RemotePort = get_remote_port(),
+
+            Report2 = Report1#report{beam_pid = EmulatorPid,
+                                     host = nodename_to_host(node()),
+                                     node = atom_to_list(node()),
+                                     timestamp = Timestamp},
+            Formatter:send_report(Socket, RemoteHost, RemotePort, Report2),
             {ok, State}
     end.
 
 %% @private
 handle_call(_Request, State) ->
-    Reply = ok,
-    {ok, Reply, State}.
+    {ok, ok, State}.
 
 %% @private
 handle_info(_Info, State) ->
@@ -87,8 +105,7 @@ handle_info(_Info, State) ->
 
 %% @private
 terminate(_Reason, #state{socket = Socket}) ->
-    sasl_syslog:close_socket(Socket),
-    ok.
+    sasl_syslog:close_socket(Socket).
 
 %% @private
 code_change(_OldVsn, State, _Extra) ->
@@ -96,69 +113,102 @@ code_change(_OldVsn, State, _Extra) ->
 
 %% ------------------------------------------------------------------------------------------
 %% -- helpers
-maybe_split_msg(Msg = #msg{msg = Text}) ->
-    case application:get_env(sasl_syslog, multiline) of
-        undefined   ->
-            [Msg];
-        {ok, true}  ->
-            [Msg];
-        {ok, false} ->
-            BinText = unicode:characters_to_binary(Text),
-            [Msg#msg{msg = Line} || Line <- binary:split(BinText, <<"\n">>, [global])]
+-spec get_remote_port() -> sasl_syslog:udp_port_no().
+get_remote_port() ->
+    case application:get_env(sasl_syslog, remote_port) of
+        {ok, syslog} -> 514;
+        {ok, gelf} -> 12201;
+        {ok, auto} ->
+            case application:get_env(sasl_syslog, formatter) of
+                {ok, sasl_syslog_gelf} -> 12201;
+                {ok, _} -> 514
+            end;
+        {ok, Int} when is_integer(Int) ->
+            Int;
+        {ok, Str} when is_list(Str) ->
+            list_to_integer(Str)
     end.
 
-event_to_msg({error, _GL, Report}) ->
-    fmt_msg(error, Report);
-event_to_msg({error_report, _GL, Report}) ->
-    report_msg(error, Report);
-event_to_msg({warning_msg, _GL, Report}) ->
-    fmt_msg(warning, Report);
-event_to_msg({warning_report, _GL, Report}) ->
-    report_msg(warning, Report);
-event_to_msg({info_msg, _GL, Report}) ->
-    fmt_msg(info, Report);
-event_to_msg({info_report, _GL, Report}) ->
-    report_msg(info, Report);
-event_to_msg(_) ->
+-spec event_to_report(event()) -> #report{} | undefined.
+event_to_report({error, _GL, Report}) ->
+    handle_fmt_event(error, Report);
+event_to_report({error_report, _GL, Report}) ->
+    handle_report_event(error, Report);
+event_to_report({warning_msg, _GL, Report}) ->
+    handle_fmt_event(warning, Report);
+event_to_report({warning_report, _GL, Report}) ->
+    handle_report_event(warning, Report);
+event_to_report({info_msg, _GL, Report}) ->
+    handle_fmt_event(info, Report);
+event_to_report({info_report, _GL, Report}) ->
+    handle_report_event(info, Report);
+event_to_report(_InternalEvent) ->
     undefined.
 
-fmt_msg(Severity, {Pid, Format, Args}) ->
+handle_fmt_event(Type, {Pid, Format, Args}) ->
     case (catch io_lib:format(Format, Args)) of
-        {'EXIT', _} -> undefined;
-        ReportText  -> #msg{msg = ReportText, severity = Severity, msgid = process_name(Pid)}
+        {'EXIT', _} ->
+            CrashMsg = unicode:characters_to_binary(io_lib:format("(io_lib:format/2 crash): ~p~n~p", [Format, Args])),
+            #report{text = CrashMsg,
+                    type = Type,
+                    pid = process_pid(Pid),
+                    process_name = process_name(Pid)};
+        ReportText  ->
+            #report{text = ReportText,
+                    type = Type,
+                    pid = process_pid(Pid),
+                    process_name = process_name(Pid)}
     end.
 
-report_msg(Severity, {Pid, _Type, Report}) ->
-    #msg{msg = report_text(Report), severity = Severity, msgid = process_name(Pid)}.
+handle_report_event(Type, {Pid, SubType, Report}) ->
+    #report{text = report_text(Report),
+            type = Type,
+            subtype = subtype(SubType),
+            pid = process_pid(Pid),
+            process_name = process_name(Pid),
+            data = Report}.
 
--spec process_name(atom() | pid()) -> string().
+subtype(crash_report)      -> crash;
+subtype(supervisor_report) -> supervisor;
+subtype(progress)          -> progress;
+subtype(_)                 -> undefined.
+
+-spec process_pid(atom() | pid()) -> string().
+process_pid(Name) when is_atom(Name) ->
+    atom_to_list(Name);
+process_pid(Pid) when is_pid(Pid) ->
+    pid_to_list(Pid).
+
+-spec process_name(atom() | pid()) -> string() | undefined.
 process_name(Name) when is_atom(Name) ->
     atom_to_list(Name);
 process_name(Pid) when is_pid(Pid) ->
     case process_info(Pid, registered_name) of
-        []                        -> pid_to_list(Pid);
-        undefined                 -> pid_to_list(Pid);
-        [{registered_name, Name}] -> atom_to_list(Name);
+        []                        -> undefined;
+        undefined                 -> undefined;
         {registered_name, Name}   -> atom_to_list(Name)
     end.
 
+-spec nodename_to_host(node()) -> string().
 nodename_to_host('nonode@nohost') ->
     {ok, Hostname} = inet:gethostname(),
     Hostname;
 nodename_to_host(Node) ->
-    re:replace(atom_to_list(Node), "@", ".").
+    atom_to_list(Node).
 
-report_text(Report) ->
+-spec report_text(term()) -> binary().
+report_text(Data) ->
     try
-        unicode:characters_to_binary(Report)
+        unicode:characters_to_binary(Data)
     catch
         error:badarg ->
             if
-                is_list(Report) -> unicode:characters_to_binary(string:join(lists:map(fun pp_line/1, Report), "\n"));
-                true            -> unicode:characters_to_binary(io_lib_pretty:print(Report))
+                is_list(Data) -> unicode:characters_to_binary(string:join(lists:map(fun pp_line/1, Data), "\n"));
+                true          -> unicode:characters_to_binary(io_lib_pretty:print(Data))
             end
     end.
 
+-spec pp_line(term()) -> iolist().
 pp_line({Tag, Data}) ->
     io_lib:format("~p: ~p", [Tag, Data]);
 pp_line(Term) ->
