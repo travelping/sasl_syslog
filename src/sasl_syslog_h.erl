@@ -85,7 +85,7 @@ handle_event(Event, State = #state{socket = Socket, emulator_pid = EmulatorPid})
         Report1 ->
             {ok, RemoteHost} = application:get_env(sasl_syslog, remote_host),
             {ok, Formatter}  = application:get_env(sasl_syslog, formatter),
-            RemotePort = get_remote_port(),
+            RemotePort = sasl_syslog:get_remote_port(),
 
             Report2 = Report1#report{beam_pid = EmulatorPid,
                                      host = nodename_to_host(node()),
@@ -113,22 +113,6 @@ code_change(_OldVsn, State, _Extra) ->
 
 %% ------------------------------------------------------------------------------------------
 %% -- helpers
--spec get_remote_port() -> sasl_syslog:udp_port_no().
-get_remote_port() ->
-    case application:get_env(sasl_syslog, remote_port) of
-        {ok, syslog} -> 514;
-        {ok, gelf} -> 12201;
-        {ok, auto} ->
-            case application:get_env(sasl_syslog, formatter) of
-                {ok, sasl_syslog_gelf} -> 12201;
-                {ok, _} -> 514
-            end;
-        {ok, Int} when is_integer(Int) ->
-            Int;
-        {ok, Str} when is_list(Str) ->
-            list_to_integer(Str)
-    end.
-
 -spec event_to_report(event()) -> #report{} | undefined.
 event_to_report({error, _GL, Report}) ->
     handle_fmt_event(error, Report);

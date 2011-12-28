@@ -20,7 +20,8 @@
 
 -module(sasl_syslog).
 -export([open_socket/1, close_socket/1, send/4, msg_to_binary/1, msg_to_binary/2,
-         facility_int/1, severity_int/1, report_severity/1]).
+         facility_int/1, severity_int/1, report_severity/1,
+         get_remote_port/0]).
 -export([truncate/2]).
 -export_type([facility/0, severity/0, timestamp/0]).
 -export_type([udp_port_no/0, host/0, udp_socket/0]).
@@ -138,3 +139,19 @@ severity_int(informational) -> 6;
 severity_int(info)          -> 6;
 severity_int(debug)         -> 7;
 severity_int(Sev)           -> error(badarg, [Sev]).
+
+-spec get_remote_port() -> udp_port_no().
+get_remote_port() ->
+    case application:get_env(sasl_syslog, remote_port) of
+        {ok, syslog} -> 514;
+        {ok, gelf} -> 12201;
+        {ok, auto} ->
+            case application:get_env(sasl_syslog, formatter) of
+                {ok, sasl_syslog_gelf} -> 12201;
+                {ok, _} -> 514
+            end;
+        {ok, Int} when is_integer(Int) ->
+            Int;
+        {ok, Str} when is_list(Str) ->
+            list_to_integer(Str)
+    end.
