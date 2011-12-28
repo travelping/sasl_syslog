@@ -28,7 +28,7 @@ msg_to_binary(Msg) ->
       "}">>.
 
 maybe_empty(_Prefix, undefined) -> <<>>;
-maybe_empty(Prefix, StrData)    -> <<$\", Prefix/bytes, "\":", (enc_string(StrData))/bytes>>.
+maybe_empty(Prefix, StrData)    -> <<$\", Prefix/bytes, "\":", (enc_string(StrData))/bytes, ",">>.
 
 -spec report_to_binary(#report{}) -> binary().
 report_to_binary(Report) ->
@@ -72,7 +72,7 @@ enc_syslog_facility(undefined) ->
 enc_syslog_facility(Int) when is_integer(Int) ->
     integer_to_list(Int);
 enc_syslog_facility(Atm) when is_atom(Atm) ->
-    enc_string(Atm).
+    Atm.
 
 -spec enc_string(binary() | iolist() | atom()) -> binary().
 enc_string(Bin) when is_binary(Bin) ->
