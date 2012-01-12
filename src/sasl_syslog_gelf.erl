@@ -24,7 +24,7 @@ msg_to_binary(Msg) ->
       (maybe_empty(<<"_appname">>, Msg#msg.appname))/bytes,
       (maybe_empty(<<"_procid">>, Msg#msg.procid))/bytes,
       (maybe_empty(<<"_msgid">>, Msg#msg.msgid))/bytes,
-      "\"timestamp\":", (?int_to_bin(unix_microtime(Msg#msg.timestamp)))/bytes,
+      "\"timestamp\":", (?int_to_bin(unix_microtime(Msg#msg.timestamp) div 1000))/bytes,
       "}">>.
 
 maybe_empty(_Prefix, undefined) -> <<>>;
@@ -41,7 +41,7 @@ report_to_binary(Report) ->
       "\"_node\":", (enc_string(Report#report.node))/bytes, ",",
       "\"_process\":", (enc_string(Report#report.pid))/bytes, ",",
       "\"_vm_os_pid\":", (enc_string(Report#report.beam_pid))/bytes, ",",
-      "\"timestamp\":", (?int_to_bin(unix_microtime(Report#report.timestamp)))/binary,
+      "\"timestamp\":", (?int_to_bin(unix_microtime(Report#report.timestamp) div 1000))/binary,
       "}">>.
 
 -spec report_facility(#report{}) -> iolist().
