@@ -24,7 +24,7 @@ msg_to_binary(Msg) ->
       (maybe_empty(<<"_appname">>, Msg#msg.appname))/bytes,
       (maybe_empty(<<"_procid">>, Msg#msg.procid))/bytes,
       (maybe_empty(<<"_msgid">>, Msg#msg.msgid))/bytes,
-      "\"timestamp\":", (?int_to_bin(unix_microtime(Msg#msg.timestamp) div 1000))/bytes,
+      "\"timestamp\":", (enc_timestamp(unix_microtime(Msg#msg.timestamp)))/bytes,
       "}">>.
 
 maybe_empty(_Prefix, undefined) -> <<>>;
@@ -41,7 +41,7 @@ report_to_binary(Report) ->
       "\"_node\":", (enc_string(Report#report.node))/bytes, ",",
       "\"_process\":", (enc_string(Report#report.pid))/bytes, ",",
       "\"_vm_os_pid\":", (enc_string(Report#report.beam_pid))/bytes, ",",
-      "\"timestamp\":", (?int_to_bin(unix_microtime(Report#report.timestamp) div 1000))/binary,
+      "\"timestamp\":", (enc_timestamp(unix_microtime(Report#report.timestamp)))/binary,
       "}">>.
 
 -spec report_facility(#report{}) -> iolist().
@@ -66,6 +66,10 @@ unix_microtime(Datetime = {{_, _, _}, {_, _, _}}) ->
     Seconds = calendar:datetime_to_gregorian_seconds(Datetime),
     (Seconds - EpochSeconds) * 1000000.
 
+-spec enc_timestamp(integer()) -> binary().
+enc_timestamp(TimeStamp) ->
+    list_to_binary(io_lib:format("~.6f", [TimeStamp / 1000000])).
+    
 -spec enc_syslog_facility(undefined | sasl_syslog:facility()) -> iolist().
 enc_syslog_facility(undefined) ->
     undefined;
