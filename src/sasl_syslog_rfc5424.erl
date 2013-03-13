@@ -6,11 +6,11 @@
 
 -spec send_report(sasl_syslog:udp_socket(), sasl_syslog:host(), sasl_syslog:udp_port_no(), #report{}) -> any().
 send_report(Socket, Address, Port, R = #report{}) ->
-    {ok, Facility} = application:get_env(sasl_syslog, facility),
+    Severity = sasl_syslog:report_severity(R),
     Msg = #msg{appname = "beam",
                timestamp = R#report.timestamp,
-               facility = Facility,
-               severity = sasl_syslog:report_severity(R),
+               facility = get_facility(Severity),
+               severity = Severity,
                hostname = R#report.host,
                procid = R#report.beam_pid,
                msgid = msgid_from_report(R),
@@ -68,6 +68,14 @@ msg_to_binary(M = #msg{vsn = 1}, MsgLimit) ->
     unicode:characters_to_binary(PacketL);
 msg_to_binary(_Msg, _MsgLimit) ->
     error(syslog_msg_vsn_unsupported).
+
+-spec get_facility(sasl_syslog:severity()) -> sasl_syslog:facility().
+get_facility(Severity) when Severity =:= critical orelse Severity =:= error ->
+    {ok, Facility} = application:get_env(sasl_syslog, error_facility),
+    Facility;
+get_facility(_Severity) ->
+    {ok, Facility} = application:get_env(sasl_syslog, facility),
+    Facility.
 
 -spec calc_prival(sasl_syslog:facility(), sasl_syslog:severity()) -> pos_integer().
 calc_prival(Facility, Severity) ->
