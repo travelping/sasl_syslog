@@ -5,13 +5,14 @@
   {applications, [kernel, stdlib]},
   {mod, {sasl_syslog_app, []}},
   {env, [
-    {enabled,      true},
-    {facility,     daemon},
-    {local_port,   0},
-    {remote_host,  {127,0,0,1}},
-    {remote_port,  auto},
-    {multiline,    false},
-    {rfc5424_bom,  false},
-    {formatter,    sasl_syslog_rfc5424}
+    {enabled,        true},
+    {facility,       daemon},
+    {error_facility, daemon},
+    {local_port,     0},
+    {remote_host,    {127,0,0,1}},
+    {remote_port,    auto},
+    {multiline,      false},
+    {rfc5424_bom,    false},
+    {formatter,      sasl_syslog_rfc5424}
   ]}
 ]}.

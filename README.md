@@ -29,7 +29,7 @@ You can configure the syslog handler by setting parameters in it's OTP applicati
     |                |                      |                                               |
     |----------------|----------------------|-----------------------------------------------|
     |                |                      |                                               |
-    | error_facility | undefined            | the syslog facility that should receive       |
+    | error_facility | daemon               | the syslog facility that should be used for   |
     |                |                      | reports of severity 'critical' and 'error'    |
     |                |                      | see src/sasl_syslog.erl for a list of         |
     |                |                      | possible values (type facility())             |

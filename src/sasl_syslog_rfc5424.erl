@@ -71,12 +71,8 @@ msg_to_binary(_Msg, _MsgLimit) ->
 
 -spec get_facility(sasl_syslog:severity()) -> sasl_syslog:facility().
 get_facility(Severity) when Severity =:= critical orelse Severity =:= error ->
-    case application:get_env(sasl_syslog, error_facility) of
-	{ok, Facility} ->
-	    Facility;
-	undefined ->
-	    get_facility(info)
-    end;
+    {ok, Facility} = application:get_env(sasl_syslog, error_facility),
+    Facility;
 get_facility(_Severity) ->
     {ok, Facility} = application:get_env(sasl_syslog, facility),
     Facility.
