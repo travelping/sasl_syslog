@@ -68,6 +68,16 @@ You can configure the syslog handler by setting parameters in it's OTP applicati
     |                      |                      | Extra event handler for application           |
     |                      |                      | specific errors                               |
     |                      |                      |                                               |
+    |                      |                      | Handlers are configured by providing          |
+    |                      |                      | configuration parameters as arguments to      |
+    |                      |                      | a key that is named like the extra event      |
+    |                      |                      | handler.                                      |
+    |                      |                      |                                               |
+    |                      |                      | Example:                                      |
+    |                      |                      | {sasl_syslog_handler_bigcouch, [              |
+    |                      |                      |     {events, [couch_info, couch_error]}       |
+    |                      |                      | ]}                                            |
+    |                      |                      |                                               |
     |----------------------|----------------------|-----------------------------------------------|
 
 ## Receiver Configuration Example (syslog-ng 3.2)
