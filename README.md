@@ -14,55 +14,61 @@ It requires Erlang R14B03 or a later version.
 ## Handler Configuration
 You can configure the syslog handler by setting parameters in it's OTP application environment.
 
-    =========================================================================================
-    | parameter name | default              | desc                                          |
-    =========================================================================================
-    |                |                      |                                               |
-    | enabled        | false                | boolean() that controls wheter the            |
-    |                |                      | syslog handler will be added on startup       |
-    |                |                      |                                               |
-    |----------------|----------------------|-----------------------------------------------|
-    |                |                      |                                               |
-    | facility       | daemon               | the syslog facility that should be used       |
-    |                |                      | see src/sasl_syslog.erl for a list of         |
-    |                |                      | possible values (type facility())             |
-    |                |                      |                                               |
-    |----------------|----------------------|-----------------------------------------------|
-    |                |                      |                                               |
-    | formatter      | sasl_syslog_rfc5424  | The module used to encode messages.           |
-    |                |                      |                                               |
-    |----------------|----------------------|-----------------------------------------------|
-    |                |                      |                                               |
-    | multiline      | false                | when set to true, the log message will        |
-    |                |                      | contain multiple lines. if false, each line   |
-    |                |                      | will be sent as a separate message (looks     |
-    |                |                      | better but causes more traffic). this option  |
-    |                |                      | only affects the RFC5424 formatter.           |
-    |                |                      |                                               |
-    |----------------|----------------------|-----------------------------------------------|
-    |                |                      |                                               |
-    | rfc5424_bom    | false                | send a UTF-8 BOM in every message. RFC5424    |
-    |                |                      | requires this, but it's confusing to          |
-    |                |                      | many tools so we disabled it by default.      |
-    |                |                      |                                               |
-    |----------------|----------------------|-----------------------------------------------|
-    |                |                      |                                               |
-    | local_port     | 0                    | UDP port the messages will be sent from.      |
-    |                |                      | 0 means OS assigned.                          |
-    |                |                      |                                               |
-    |----------------|----------------------|-----------------------------------------------|
-    |                |                      |                                               |
-    | remote_host    | {127,0,0,1}          | inet:hostname() | inet:ip_address()           |
-    |                |                      | host of the syslog receiver                   |
-    |                |                      |                                               |
-    |----------------|----------------------|-----------------------------------------------|
-    |                |                      |                                               |
-    | remote_port    | auto                 | 'auto' | 'syslog' | 'gelf' | pos_integer()    |
-    |                |                      | Port of the log receiver                      |
-    |                |                      | The default value 'auto' selects a value      |
-    |                |                      | port based on the formatter.                  |
-    |                |                      |                                               |
-    |----------------|----------------------|-----------------------------------------------|
+    ===============================================================================================
+    | parameter name       | default              | desc                                          |
+    ===============================================================================================
+    |                      |                      |                                               |
+    | enabled              | false                | boolean() that controls wheter the            |
+    |                      |                      | syslog handler will be added on startup       |
+    |                      |                      |                                               |
+    |----------------------|----------------------|-----------------------------------------------|
+    |                      |                      |                                               |
+    | facility             | daemon               | the syslog facility that should be used       |
+    |                      |                      | see src/sasl_syslog.erl for a list of         |
+    |                      |                      | possible values (type facility())             |
+    |                      |                      |                                               |
+    |----------------------|----------------------|-----------------------------------------------|
+    |                      |                      |                                               |
+    | formatter            | sasl_syslog_rfc5424  | The module used to encode messages.           |
+    |                      |                      |                                               |
+    |----------------------|----------------------|-----------------------------------------------|
+    |                      |                      |                                               |
+    | multiline            | false                | when set to true, the log message will        |
+    |                      |                      | contain multiple lines. if false, each line   |
+    |                      |                      | will be sent as a separate message (looks     |
+    |                      |                      | better but causes more traffic). this option  |
+    |                      |                      | only affects the RFC5424 formatter.           |
+    |                      |                      |                                               |
+    |----------------------|----------------------|-----------------------------------------------|
+    |                      |                      |                                               |
+    | rfc5424_bom          | false                | send a UTF-8 BOM in every message. RFC5424    |
+    |                      |                      | requires this, but it's confusing to          |
+    |                      |                      | many tools so we disabled it by default.      |
+    |                      |                      |                                               |
+    |----------------------|----------------------|-----------------------------------------------|
+    |                      |                      |                                               |
+    | local_port           | 0                    | UDP port the messages will be sent from.      |
+    |                      |                      | 0 means OS assigned.                          |
+    |                      |                      |                                               |
+    |----------------------|----------------------|-----------------------------------------------|
+    |                      |                      |                                               |
+    | remote_host          | {127,0,0,1}          | inet:hostname() | inet:ip_address()           |
+    |                      |                      | host of the syslog receiver                   |
+    |                      |                      |                                               |
+    |----------------------|----------------------|-----------------------------------------------|
+    |                      |                      |                                               |
+    | remote_port          | auto                 | 'auto' | 'syslog' | 'gelf' | pos_integer()    |
+    |                      |                      | Port of the log receiver                      |
+    |                      |                      | The default value 'auto' selects a value      |
+    |                      |                      | port based on the formatter.                  |
+    |                      |                      |                                               |
+    |----------------------|----------------------|-----------------------------------------------|
+    |                      |                      |                                               |
+    | extra_event_handlers | []                   | [module()]                                    |
+    |                      |                      | Extra event handler for application           |
+    |                      |                      | specific errors                               |
+    |                      |                      |                                               |
+    |----------------------|----------------------|-----------------------------------------------|
 
 ## Receiver Configuration Example (syslog-ng 3.2)
 
