@@ -23,6 +23,8 @@
 
 -export([attach/0, detach/0]).
 -export([init/1, handle_event/2, handle_call/2, handle_info/2, terminate/2, code_change/3]).
+-export([behaviour_info/1]).
+-export([process_pid/1, process_name/1]).
 
 -include("sasl_syslog.hrl").
 
@@ -39,6 +41,11 @@
                | {info_msg, group_leader(), {process(), string(), list()}}
                | {info_report, group_leader(), {process(), report_type(), Report}}
                | term().
+
+behaviour_info(callbacks) ->
+    [{event_to_report, 1}];
+behaviour_info(_Other) ->
+    undefined.
 
 %% ------------------------------------------------------------------------------------------
 %% -- misc API
@@ -81,7 +88,7 @@ handle_event(Event, State = #state{socket = Socket, emulator_pid = EmulatorPid})
     Timestamp = os:timestamp(),
     case event_to_report(Event) of
         undefined ->
-            {ok, State};
+            ok;
         Report1 ->
             {ok, RemoteHost} = application:get_env(sasl_syslog, remote_host),
             {ok, Formatter}  = application:get_env(sasl_syslog, formatter),
@@ -91,9 +98,9 @@ handle_event(Event, State = #state{socket = Socket, emulator_pid = EmulatorPid})
                                      host = nodename_to_host(node()),
                                      node = atom_to_list(node()),
                                      timestamp = Timestamp},
-            Formatter:send_report(Socket, RemoteHost, RemotePort, Report2),
-            {ok, State}
-    end.
+            Formatter:send_report(Socket, RemoteHost, RemotePort, Report2)
+    end,
+    {ok, State}.
 
 %% @private
 handle_call(_Request, State) ->
@@ -126,8 +133,16 @@ event_to_report({info_msg, _GL, Report}) ->
     handle_fmt_event(info, Report);
 event_to_report({info_report, _GL, Report}) ->
     handle_report_event(info, Report);
-event_to_report(_InternalEvent) ->
-    undefined.
+event_to_report(OtherEvent) ->
+    {ok, Handlers} = application:get_env(sasl_syslog, extra_event_handlers),
+    specific_event_to_report(OtherEvent, Handlers).
+
+specific_event_to_report(_InternalEvent, []) -> undefined;
+specific_event_to_report(OtherEvent, [Handler | Handlers]) ->
+    case Handler:event_to_report(OtherEvent) of
+        undefined -> specific_event_to_report(OtherEvent, Handlers);
+        Report -> Report
+    end.
 
 handle_fmt_event(Type, {Pid, Format, Args}) ->
     case (catch io_lib:format(Format, Args)) of

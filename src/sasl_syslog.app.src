@@ -12,6 +12,9 @@
     {remote_port,  auto},
     {multiline,    false},
     {rfc5424_bom,  false},
-    {formatter,    sasl_syslog_rfc5424}
+    {formatter,    sasl_syslog_rfc5424},
+    {extra_event_handlers, []},
+   % {extra_event_handlers, [sasl_syslog_handler_bigcouch]},
+    {sasl_syslog_handler_bigcouch, [{events, [couch_info, couch_error]}]}
   ]}
 ]}.
