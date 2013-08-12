@@ -92,3 +92,4 @@ A source configuration that matches the sasl_syslog defaults:
 [1]: http://tools.ietf.org/html/rfc5424
 [2]: https://github.com/Graylog2/graylog2-docs/wiki/GELF
 [3]: http://www.balabit.com/sites/default/files/documents/syslog-ng-ose-3.2-guides/syslog-ng-ose-v3.2-guide-admin-en.html/configuring_sources_syslog.html
+
